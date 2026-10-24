@@ -1,0 +1,642 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color Me! - Coloring World</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #fff7f2;
+  color: #333;
+}
+
+header {
+  background: #ffd5e6;
+  padding: 22px 12px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0;
+  color: #8c3867;
+  font-size: 32px;
+}
+
+header p {
+  margin-bottom: 0;
+}
+
+main {
+  max-width: 1100px;
+  margin: auto;
+  padding: 20px;
+}
+
+h2 {
+  color: #653d58;
+}
+
+.categories,
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 14px;
+}
+
+.category,
+.drawing-card {
+  background: white;
+  border: 2px solid #f0d5e1;
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.category {
+  font-size: 17px;
+}
+
+.category span {
+  display: block;
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.category.active,
+.drawing-card:hover {
+  background: #ffe6f0;
+  border-color: #d966a0;
+}
+
+.drawing-card {
+  padding: 10px;
+}
+
+.drawing-card p {
+  font-weight: bold;
+}
+
+.preview {
+  width: 100%;
+  height: 125px;
+}
+
+button {
+  font: inherit;
+}
+
+.action {
+  border: none;
+  background: #ffd5e6;
+  color: #63364f;
+  padding: 10px 15px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin: 3px;
+}
+
+.action:hover {
+  background: #f7b9d3;
+}
+
+#studio {
+  display: none;
+  background: white;
+  border: 1px solid #efd9e4;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #aaa;
+  cursor: pointer;
+}
+
+.swatch.active {
+  outline: 3px solid #555;
+  outline-offset: 2px;
+}
+
+#art {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  margin: auto;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 12px;
+}
+
+.paintable {
+  fill: #ffffff;
+  stroke: #222222;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  cursor: pointer;
+  pointer-events: all;
+}
+
+#message {
+  text-align: center;
+  color: #8c3867;
+  font-weight: bold;
+}
+
+@media (max-width: 500px) {
+  main {
+    padding: 12px;
+  }
+
+  header h1 {
+    font-size: 27px;
+  }
+
+  #studio {
+    padding: 10px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🎨 Color Me!</h1>
+  <p>Choose a drawing and fill your world with colors!</p>
+</header>
+
+<main>
+
+<section id="home">
+  <h2>📁 Choose Your Folder</h2>
+  <div class="categories" id="categories"></div>
+
+  <h2 id="galleryTitle">All Drawings</h2>
+  <div class="gallery" id="gallery"></div>
+</section>
+
+<section id="studio">
+  <div class="toolbar">
+    <button class="action" onclick="goHome()">← Back</button>
+    <h2 id="artTitle">My Drawing</h2>
+    <div>
+      <button class="action" onclick="undo()">↶ Undo</button>
+      <button class="action" onclick="resetArt()">Reset</button>
+    </div>
+  </div>
+
+  <p>Choose a color below, then tap any part of the picture.</p>
+
+  <div id="palette"></div>
+
+  <svg id="art" viewBox="0 0 400 400"
+       xmlns="http://www.w3.org/2000/svg">
+  </svg>
+
+  <p id="message">Choose a drawing to start!</p>
+</section>
+
+</main>
+
+<script>
+const folders = [
+  { name: "Animals", icon: "🐱" },
+  { name: "Nature", icon: "🌳" },
+  { name: "Flowers", icon: "🌸" },
+  { name: "Birds", icon: "🐦" }
+];
+
+const drawings = [
+  { id: "cat", name: "Cute Cat", folder: "Animals", icon: "🐱" },
+  { id: "fish", name: "Little Fish", folder: "Animals", icon: "🐠" },
+  { id: "rabbit", name: "Happy Rabbit", folder: "Animals", icon: "🐰" },
+  { id: "butterfly", name: "Butterfly", folder: "Animals", icon: "🦋" },
+
+  { id: "tree", name: "Big Tree", folder: "Nature", icon: "🌳" },
+  { id: "mountain", name: "Mountains", folder: "Nature", icon: "🏔️" },
+  { id: "sun", name: "Sunny Day", folder: "Nature", icon: "☀️" },
+  { id: "cloud", name: "Cloudy Sky", folder: "Nature", icon: "☁️" },
+
+  { id: "flower", name: "Pretty Flower", folder: "Flowers", icon: "🌸" },
+  { id: "tulip", name: "Tulip", folder: "Flowers", icon: "🌷" },
+  { id: "sunflower", name: "Sunflower", folder: "Flowers", icon: "🌻" },
+  { id: "rose", name: "Rose", folder: "Flowers", icon: "🌹" },
+
+  { id: "bird", name: "Little Bird", folder: "Birds", icon: "🐦" },
+  { id: "owl", name: "Cute Owl", folder: "Birds", icon: "🦉" },
+  { id: "duck", name: "Little Duck", folder: "Birds", icon: "🦆" },
+  { id: "parrot", name: "Parrot", folder: "Birds", icon: "🦜" }
+];
+
+const colors = [
+  "#ff0000", "#ff7b00", "#ffd500", "#72c94b",
+  "#00a86b", "#00bcd4", "#168cff", "#4939e8",
+  "#9b51e0", "#ff4fa3", "#ffb6c1", "#a66a3f",
+  "#ffffff", "#a0a0a0", "#333333"
+];
+
+let activeFolder = "All";
+let currentDrawing = null;
+let currentColor = colors[0];
+let history = [];
+
+function renderCategories() {
+  const box = document.getElementById("categories");
+  box.innerHTML = "";
+
+  const allButton = document.createElement("button");
+  allButton.className = "category" +
+    (activeFolder === "All" ? " active" : "");
+  allButton.innerHTML = "<span>🎨</span>All Drawings";
+  allButton.onclick = () => {
+    activeFolder = "All";
+    renderCategories();
+    renderGallery();
+  };
+  box.appendChild(allButton);
+
+  folders.forEach(folder => {
+    const button = document.createElement("button");
+    button.className = "category" +
+      (activeFolder === folder.name ? " active" : "");
+    button.innerHTML = `<span>${folder.icon}</span>${folder.name}`;
+    button.onclick = () => {
+      activeFolder = folder.name;
+      renderCategories();
+      renderGallery();
+    };
+    box.appendChild(button);
+  });
+}
+
+function renderGallery() {
+  const gallery = document.getElementById("gallery");
+  gallery.innerHTML = "";
+
+  document.getElementById("galleryTitle").textContent =
+    activeFolder === "All" ? "All Drawings" : activeFolder + " Drawings";
+
+  drawings
+    .filter(d => activeFolder === "All" || d.folder === activeFolder)
+    .forEach(drawing => {
+      const card = document.createElement("div");
+      card.className = "drawing-card";
+      card.innerHTML = `
+        <svg class="preview" viewBox="0 0 400 400" aria-hidden="true">
+          <rect x="10" y="10" width="380" height="380"
+            rx="25" fill="#fff7fb" stroke="#f0d5e1"/>
+          <text x="200" y="240" text-anchor="middle"
+            font-size="155">${drawing.icon}</text>
+        </svg>
+        <p>${drawing.name}</p>
+        <small>${drawing.folder}</small>
+      `;
+      card.onclick = () => openDrawing(drawing);
+      gallery.appendChild(card);
+    });
+}
+
+function makeShape(tag, attrs = {}, paintable = true) {
+  const el = document.createElementNS(
+    "http://www.w3.org/2000/svg", tag
+  );
+
+  Object.entries(attrs).forEach(([key, value]) => {
+    el.setAttribute(key, value);
+  });
+
+  if (paintable) {
+    el.classList.add("paintable");
+    el.setAttribute("fill", "#ffffff");
+    el.setAttribute("tabindex", "0");
+    el.setAttribute("role", "button");
+
+    // Use the same event for mouse and touchscreen taps.
+    el.addEventListener("click", function(event) {
+      event.stopPropagation();
+      paintPart(el);
+    });
+
+    el.addEventListener("keydown", function(event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        paintPart(el);
+      }
+    });
+  }
+
+  document.getElementById("art").appendChild(el);
+  return el;
+}
+
+function circle(cx, cy, r) {
+  return makeShape("circle", { cx, cy, r });
+}
+
+function ellipse(cx, cy, rx, ry) {
+  return makeShape("ellipse", { cx, cy, rx, ry });
+}
+
+function path(d) {
+  return makeShape("path", { d });
+}
+
+function rect(x, y, width, height, rx = 0) {
+  return makeShape("rect", { x, y, width, height, rx });
+}
+
+function detail(d) {
+  return makeShape("path", {
+    d,
+    fill: "none",
+    stroke: "#222222",
+    "stroke-width": 3,
+    "stroke-linecap": "round"
+  }, false);
+}
+
+function makeArt(id) {
+  const art = document.getElementById("art");
+  art.innerHTML = "";
+
+  // Drawing background is decorative, not a paintable region.
+  makeShape("rect", {
+    x: 0, y: 0, width: 400, height: 400,
+    fill: "#ffffff", stroke: "none"
+  }, false);
+
+  if (id === "flower" || id === "sunflower" ||
+      id === "rose" || id === "tulip") {
+
+    // Stem and leaves
+    path("M190 205 Q185 265 190 350 L215 350 Q210 265 205 205 Z");
+    path("M192 290 Q140 245 115 275 Q145 315 192 305 Z");
+    path("M210 315 Q250 265 285 285 Q265 320 210 330 Z");
+
+    if (id === "tulip") {
+      path("M195 185 Q145 165 135 110 Q175 120 195 150 Z");
+      path("M200 185 Q175 105 200 80 Q230 120 205 155 Z");
+      path("M205 185 Q240 135 270 125 Q260 175 205 195 Z");
+    } else {
+      const petals = id === "sunflower" ? 12 : 8;
+      for (let i = 0; i < petals; i++) {
+        const a = 2 * Math.PI * i / petals;
+        const x = 200 + 58 * Math.cos(a);
+        const y = 150 + 58 * Math.sin(a);
+        const p = ellipse(x, y, 25, 38);
+        p.setAttribute(
+          "transform",
+          `rotate(${i * 360 / petals} ${x} ${y})`
+        );
+      }
+      circle(200, 150, 35);
+      if (id === "rose") {
+        path("M175 150 Q155 125 180 115 Q205 115 200 140");
+        path("M200 140 Q235 115 225 145 Q215 165 200 150");
+      }
+    }
+
+  } else if (id === "cat" || id === "rabbit") {
+    ellipse(200, 260, 90, 100);
+
+    if (id === "cat") {
+      path("M130 155 L125 75 L180 120 Z");
+      path("M220 120 L275 75 L270 155 Z");
+      path("M142 125 L140 100 L162 123 Z");
+      path("M238 123 L260 100 L258 130 Z");
+    } else {
+      ellipse(165, 100, 22, 62);
+      ellipse(235, 100, 22, 62);
+    }
+
+    circle(170, 195, 9);
+    circle(230, 195, 9);
+    path("M190 220 L200 230 L210 220 Z");
+    detail("M200 230 Q180 250 170 230");
+    detail("M200 230 Q220 250 230 230");
+    detail("M115 225 L165 230");
+    detail("M235 230 L285 225");
+
+  } else if (id === "fish") {
+    ellipse(185, 200, 105, 65);
+    path("M280 200 L350 150 L350 250 Z");
+    circle(120, 185, 9);
+    path("M180 175 Q215 200 180 225 Z");
+    path("M155 140 Q190 120 220 145 Z");
+    path("M155 260 Q190 280 220 255 Z");
+
+  } else if (id === "butterfly") {
+    ellipse(140, 145, 60, 75);
+    ellipse(260, 145, 60, 75);
+    ellipse(145, 245, 48, 55);
+    ellipse(255, 245, 48, 55);
+    ellipse(200, 205, 15, 70);
+    detail("M195 140 Q160 85 145 105");
+    detail("M205 140 Q240 85 255 105");
+    circle(140, 145, 12);
+    circle(260, 145, 12);
+
+  } else if (id === "tree") {
+    rect(170, 220, 60, 140, 8);
+    circle(150, 170, 62);
+    circle(235, 155, 65);
+    circle(190, 105, 62);
+    path("M30 360 Q110 330 200 360 Q290 330 370 360 L370 390 L30 390 Z");
+
+  } else if (id === "mountain") {
+    path("M20 340 L135 100 L245 340 Z");
+    path("M155 340 L275 125 L390 340 Z");
+    path("M100 170 L135 100 L170 175 L140 158 Z");
+    path("M240 190 L275 125 L310 190 L280 175 Z");
+    path("M30 340 Q100 300 175 340 Q250 300 370 340 L370 380 L30 380 Z");
+    circle(65, 65, 30);
+
+  } else if (id === "sun") {
+    circle(200, 150, 60);
+
+    // Rays are decorative lines; the sun itself is paintable.
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      detail(
+        `M${200 + 78 * Math.cos(a)} ${150 + 78 * Math.sin(a)}
+         L${200 + 108 * Math.cos(a)} ${150 + 108 * Math.sin(a)}`
+      );
+    }
+
+    path("M20 330 Q100 285 200 330 Q300 285 380 330 L380 380 L20 380 Z");
+    ellipse(100, 100, 28, 18);
+    ellipse(300, 75, 30, 20);
+
+  } else if (id === "cloud") {
+    circle(120, 185, 42);
+    circle(175, 145, 55);
+    circle(235, 175, 45);
+    rect(105, 175, 155, 55, 20);
+    path("M20 330 Q100 300 200 330 Q300 300 380 330 L380 380 L20 380 Z");
+    circle(315, 75, 28);
+
+  } else if (id === "bird" || id === "owl" ||
+             id === "duck" || id === "parrot") {
+    ellipse(205, 230, 88, 75);
+    circle(265, 145, 48);
+
+    if (id === "owl") {
+      path("M225 115 L230 65 L260 105 Z");
+      path("M270 105 L300 65 L305 120 Z");
+      circle(250, 145, 17);
+      circle(280, 145, 17);
+      circle(250, 145, 5);
+      circle(280, 145, 5);
+    } else {
+      circle(280, 140, 8);
+      path("M310 150 L365 165 L310 178 Z");
+    }
+
+    path("M185 215 Q215 180 240 220 Q215 250 185 215 Z");
+    path("M175 300 L160 345 L190 345 Z");
+    path("M235 300 L250 345 L220 345 Z");
+
+    if (id === "duck") {
+      path("M130 240 Q80 215 85 180 Q125 195 145 225 Z");
+      path("M295 155 L350 165 L295 175 Z");
+    }
+
+    if (id === "parrot") {
+      path("M145 220 L75 290 L145 275 Z");
+      circle(280, 140, 4);
+    }
+  }
+}
+
+function openDrawing(drawing) {
+  currentDrawing = drawing;
+  history = [];
+  currentColor = colors[0];
+
+  document.getElementById("home").style.display = "none";
+  document.getElementById("studio").style.display = "block";
+  document.getElementById("artTitle").textContent = drawing.name;
+
+  renderPalette();
+  makeArt(drawing.id);
+  updateProgress();
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderPalette() {
+  const palette = document.getElementById("palette");
+  palette.innerHTML = "";
+
+  colors.forEach(color => {
+    const button = document.createElement("button");
+    button.className = "swatch" +
+      (color === currentColor ? " active" : "");
+    button.style.backgroundColor = color;
+    button.title = color;
+    button.setAttribute("aria-label", "Select " + color);
+
+    button.onclick = () => {
+      currentColor = color;
+      renderPalette();
+    };
+
+    palette.appendChild(button);
+  });
+}
+
+function paintPart(el) {
+  if (!el || !currentColor) return;
+
+  history.push({
+    el: el,
+    fill: el.getAttribute("fill") || "#ffffff"
+  });
+
+  // Inline fill ensures the selected color is displayed.
+  el.setAttribute("fill", currentColor);
+  el.style.fill = currentColor;
+
+  updateProgress();
+}
+
+function undo() {
+  const previous = history.pop();
+
+  if (previous) {
+    previous.el.setAttribute("fill", previous.fill);
+    previous.el.style.fill = previous.fill;
+  }
+
+  updateProgress();
+}
+
+function resetArt() {
+  document.querySelectorAll("#art .paintable").forEach(el => {
+    el.setAttribute("fill", "#ffffff");
+    el.style.fill = "#ffffff";
+  });
+
+  history = [];
+  updateProgress();
+}
+
+function updateProgress() {
+  const parts = [
+    ...document.querySelectorAll("#art .paintable")
+  ];
+
+  const colored = parts.filter(el => {
+    const fill = (el.getAttribute("fill") || "#ffffff")
+      .trim().toLowerCase();
+
+    return fill !== "#ffffff" &&
+           fill !== "white" &&
+           fill !== "rgb(255, 255, 255)";
+  }).length;
+
+  document.getElementById("message").textContent =
+    `Colored: ${colored} / ${parts.length} parts`;
+}
+
+function goHome() {
+  document.getElementById("studio").style.display = "none";
+  document.getElementById("home").style.display = "block";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+renderCategories();
+renderGallery();
+</script>
+
+</body>
+</html>
